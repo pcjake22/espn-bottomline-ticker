@@ -1,5 +1,3 @@
-NHL BottomLine Taskbar Ticker
-=======
 # NHL BottomLine Taskbar Ticker
 
 ![NHL Bottomline Ticker Banner](assets/banner.png)
