@@ -1,15 +1,25 @@
 import sys
+import os
+import shutil
+import time
+import threading
+import subprocess
+import ctypes
 import traceback
 import requests
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QHBoxLayout, QLabel, QMenu, QFrame
+    QApplication, QWidget, QHBoxLayout, QVBoxLayout, QLabel, 
+    QMenu, QFrame, QDialog, QLineEdit, QPushButton, QComboBox, QGridLayout
 )
 from PyQt6.QtGui import (
     QAction, QPixmap, QPainter, QFont, QColor, QFontMetrics, QLinearGradient
 )
+
+if sys.platform == "win32":
+    import winreg
 
 def exception_hook(exctype, value, tb):
     print("\n--- UNCAUGHT EXCEPTION ---")
@@ -18,7 +28,44 @@ def exception_hook(exctype, value, tb):
 
 sys.excepthook = exception_hook
 
-# Supported sports configurations with dynamic theme colors & endpoints
+user32 = ctypes.windll.user32 if sys.platform == "win32" else None
+SW_RESTORE = 9
+
+def find_firefox_path():
+    """Dynamically resolves the Firefox executable across PATH, Registry, and standard paths."""
+    # 1. System PATH check
+    path = shutil.which("firefox")
+    if path and os.path.exists(path):
+        return path
+
+    if sys.platform == "win32":
+        # 2. Windows App Paths Registry check
+        reg_keys = [
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe"),
+            (winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe")
+        ]
+        for root_key, subkey in reg_keys:
+            try:
+                with winreg.OpenKey(root_key, subkey) as k:
+                    val, _ = winreg.QueryValueEx(k, "")
+                    if val and os.path.exists(val):
+                        return val
+            except Exception:
+                pass
+
+        # 3. Known standard install locations
+        candidates = [
+            os.path.expandvars(r"%ProgramFiles%\Mozilla Firefox\firefox.exe"),
+            os.path.expandvars(r"%ProgramFiles(x86)%\Mozilla Firefox\firefox.exe"),
+            os.path.expandvars(r"%LocalAppData%\Mozilla Firefox\firefox.exe")
+        ]
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+
+    return "firefox"
+
+
 SPORTS_CONFIG = {
     "NHL": {
         "label": "NHL",
@@ -59,8 +106,99 @@ SPORTS_CONFIG = {
 }
 
 
+class MultiviewDialog(QDialog):
+    def __init__(self, current_screen_idx=0, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("ESPN BottomLine - Multiview Setup")
+        self.setFixedWidth(520)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #12141a;
+                color: #FFFFFF;
+                font-family: 'Segoe UI', Arial, sans-serif;
+            }
+            QLabel {
+                color: #CBD5E1;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QComboBox, QLineEdit {
+                background-color: #1e222d;
+                border: 1px solid #333a4c;
+                border-radius: 4px;
+                color: #FFFFFF;
+                padding: 6px;
+                font-size: 12px;
+            }
+            QComboBox:focus, QLineEdit:focus {
+                border: 1px solid #CC0000;
+            }
+            QPushButton {
+                background-color: #CC0000;
+                color: white;
+                font-weight: bold;
+                padding: 10px;
+                border-radius: 4px;
+                font-size: 13px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #E60000;
+            }
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(12)
+
+        layout.addWidget(QLabel("Target Display:"))
+        self.screen_combo = QComboBox()
+        self.screens = QApplication.screens()
+        for i, s in enumerate(self.screens):
+            geo = s.geometry()
+            self.screen_combo.addItem(f"Screen {i}: {s.name()} ({geo.width()}x{geo.height()} at X:{geo.x()}, Y:{geo.y()})")
+        
+        if current_screen_idx < len(self.screens):
+            self.screen_combo.setCurrentIndex(current_screen_idx)
+        layout.addWidget(self.screen_combo)
+
+        layout.addWidget(QLabel("Quadrant Stream URLs:"))
+        grid = QGridLayout()
+        grid.setSpacing(8)
+
+        self.url_inputs = []
+        labels = ["Top-Left:", "Top-Right:", "Bottom-Left:", "Bottom-Right:"]
+        default_urls = [
+            "https://www.espn.com/watch/",
+            "https://www.espn.com/watch/",
+            "https://www.espn.com/watch/",
+            "https://www.espn.com/watch/"
+        ]
+
+        for i in range(4):
+            lbl = QLabel(labels[i])
+            inp = QLineEdit(default_urls[i])
+            row = i // 2 * 2
+            col = i % 2
+            grid.addWidget(lbl, row, col)
+            grid.addWidget(inp, row + 1, col)
+            self.url_inputs.append(inp)
+
+        layout.addLayout(grid)
+
+        self.btn_run = QPushButton("📺 Launch & Snap Multiview Grid")
+        self.btn_run.clicked.connect(self.accept)
+        layout.addWidget(self.btn_run)
+
+    def get_config(self):
+        return (
+            self.screen_combo.currentIndex(),
+            [inp.text().strip() for inp in self.url_inputs]
+        )
+
+
 class BottomlineBadge(QWidget):
-    """Broadcast badge that displays current sport and emits a click event."""
     clicked = pyqtSignal()
 
     def __init__(self, sport_key="NHL", parent=None):
@@ -92,14 +230,12 @@ class BottomlineBadge(QWidget):
         painter.setBrush(grad)
         painter.drawRoundedRect(1, 1, self.width() - 2, self.height() - 2, 4, 4)
 
-        # Top line: Sport code
         font_top = QFont("Segoe UI", 8, QFont.Weight.Black)
         font_top.setItalic(True)
         painter.setFont(font_top)
         painter.setPen(QColor("#FFFFFF"))
         painter.drawText(10, 14, cfg["label"])
 
-        # Bottom line: "BOTTOMLINE"
         font_bottom = QFont("Segoe UI", 11, QFont.Weight.Black)
         font_bottom.setLetterSpacing(QFont.SpacingType.AbsoluteSpacing, 1.1)
         painter.setFont(font_bottom)
@@ -283,19 +419,16 @@ class MultiSportTicker(QWidget):
         main_layout.setContentsMargins(10, 4, 10, 4)
         main_layout.setSpacing(10)
 
-        # 1. Sport Brand Badge
         self.brand_badge = BottomlineBadge(self.current_sport, self)
         self.brand_badge.clicked.connect(self.cycle_sport)
         main_layout.addWidget(self.brand_badge)
 
-        # 2. Featured Game Capsule
         self.featured_capsule = QFrame()
         self.featured_capsule.setObjectName("featured_capsule")
         capsule_layout = QHBoxLayout(self.featured_capsule)
         capsule_layout.setContentsMargins(4, 2, 8, 2)
         capsule_layout.setSpacing(6)
 
-        # Away Block
         self.away_block = QFrame()
         away_layout = QHBoxLayout(self.away_block)
         away_layout.setContentsMargins(6, 2, 6, 2)
@@ -309,11 +442,9 @@ class MultiSportTicker(QWidget):
         away_layout.addWidget(self.away_abbr)
         away_layout.addWidget(self.away_score)
 
-        # Divider
         self.vs_label = QLabel("@")
         self.vs_label.setStyleSheet("color: #6B7280; font-weight: 900; font-size: 12px; border: none;")
 
-        # Home Block
         self.home_block = QFrame()
         home_layout = QHBoxLayout(self.home_block)
         home_layout.setContentsMargins(6, 2, 6, 2)
@@ -336,7 +467,6 @@ class MultiSportTicker(QWidget):
         capsule_layout.addWidget(self.game_clock)
         main_layout.addWidget(self.featured_capsule)
 
-        # 3. Crawler Capsule
         self.crawler_capsule = QFrame()
         self.crawler_capsule.setObjectName("crawler_capsule")
         crawler_layout = QHBoxLayout(self.crawler_capsule)
@@ -345,7 +475,6 @@ class MultiSportTicker(QWidget):
         crawler_layout.addWidget(self.marquee)
         main_layout.addWidget(self.crawler_capsule, stretch=1)
 
-        # 4. Situational Alert & Local Clock
         self.alert_badge = QLabel("")
         self.alert_badge.setObjectName("alert_badge")
         self.alert_badge.hide()
@@ -358,7 +487,6 @@ class MultiSportTicker(QWidget):
         self.apply_theme()
         self.move_to_screen(self.current_screen_index)
 
-        # Timers
         self.time_timer = QTimer(self)
         self.time_timer.timeout.connect(self.update_clock)
         self.time_timer.start(1000)
@@ -486,6 +614,98 @@ class MultiSportTicker(QWidget):
             taskbar_height
         )
 
+    def snap_hwnd_quadrant(self, hwnd, quad_idx):
+        """Simulates native Windows 11 quadrant snapping keystrokes."""
+        VK_LWIN = 0x5B
+        VK_LEFT = 0x25
+        VK_UP = 0x26
+        VK_RIGHT = 0x27
+        VK_DOWN = 0x28
+        VK_ESCAPE = 0x1B
+        KEYEVENTF_KEYUP = 0x0002
+
+        def press(vk):
+            user32.keybd_event(vk, 0, 0, 0)
+
+        def release(vk):
+            user32.keybd_event(vk, 0, KEYEVENTF_KEYUP, 0)
+
+        def tap(vk):
+            press(vk)
+            time.sleep(0.05)
+            release(vk)
+            time.sleep(0.05)
+
+        user32.ShowWindow(hwnd, SW_RESTORE)
+        user32.SetForegroundWindow(hwnd)
+        time.sleep(0.15)
+
+        press(VK_LWIN)
+        time.sleep(0.04)
+
+        if quad_idx == 0:    # Top-Left
+            tap(VK_LEFT)
+            time.sleep(0.08)
+            tap(VK_UP)
+        elif quad_idx == 1:  # Top-Right
+            tap(VK_RIGHT)
+            time.sleep(0.08)
+            tap(VK_UP)
+        elif quad_idx == 2:  # Bottom-Left
+            tap(VK_LEFT)
+            time.sleep(0.08)
+            tap(VK_DOWN)
+        elif quad_idx == 3:  # Bottom-Right
+            tap(VK_RIGHT)
+            time.sleep(0.08)
+            tap(VK_DOWN)
+
+        release(VK_LWIN)
+        time.sleep(0.12)
+
+        # Clear Windows Snap Assist flyout
+        tap(VK_ESCAPE)
+        time.sleep(0.05)
+
+    def launch_multiview(self):
+        """Spawns 4 Firefox windows and triggers native Windows shell quadrant snap."""
+        dlg = MultiviewDialog(current_screen_idx=self.current_screen_index, parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        target_screen_idx, urls = dlg.get_config()
+
+        screens = QApplication.screens()
+        target_screen = screens[target_screen_idx] if target_screen_idx < len(screens) else screens[0]
+        geo = target_screen.geometry()
+
+        firefox_bin = find_firefox_path()
+
+        def spawn_worker():
+            for i in range(4):
+                try:
+                    subprocess.Popen([firefox_bin, "--new-window", urls[i]])
+                    time.sleep(1.1)
+
+                    if user32:
+                        hwnd = user32.GetForegroundWindow()
+                        if hwnd:
+                            user32.ShowWindow(hwnd, SW_RESTORE)
+                            user32.MoveWindow(
+                                hwnd, 
+                                geo.x() + int(geo.width() / 4), 
+                                geo.y() + int(geo.height() / 4), 
+                                int(geo.width() / 2), 
+                                int(geo.height() / 2), 
+                                True
+                            )
+                            time.sleep(0.15)
+                            self.snap_hwnd_quadrant(hwnd, i)
+                except Exception as e:
+                    print(f"[Multiview Error] Quadrant {i} failed: {e}")
+
+        threading.Thread(target=spawn_worker, daemon=True).start()
+
     def start_fetch(self):
         if self.worker and self.worker.isRunning():
             return
@@ -609,6 +829,12 @@ class MultiSportTicker(QWidget):
             action = QAction(label, self)
             action.triggered.connect(lambda checked, s=sp: self.cycle_sport(target_sport=s))
             sport_menu.addAction(action)
+
+        action_multiview = QAction("📺 Launch 4-Way Multiview...", self)
+        action_multiview.triggered.connect(self.launch_multiview)
+        menu.addAction(action_multiview)
+
+        menu.addSeparator()
 
         screen_menu = menu.addMenu("Move to Screen...")
         screens = QApplication.screens()
