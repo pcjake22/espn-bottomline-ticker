@@ -1,6 +1,6 @@
 NHL BottomLine Taskbar Ticker
 
-![NHL Bottomline Ticker Banner](assets/banner.png)
+![NHL Bottomline Ticker Banner](assets/banner-v1.2.png)
 
 [![Latest Release](https://img.shields.io/github/v/release/pcjake22/nhl-bottomline-ticker?style=for-the-badge&color=CC0000)](https://github.com/pcjake22/nhl-bottomline-ticker/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/pcjake22/nhl-bottomline-ticker)
