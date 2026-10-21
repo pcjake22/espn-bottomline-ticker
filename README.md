@@ -59,7 +59,7 @@ The multiview grid opens 4 stream windows and docks them directly into a 2x2 gri
 +===============================================+
 | [ESPN BOTTOMLINE]  COL 3 @ NJ 4  ★  BOS 2-1 DAL |  <- 48px Ticker
 +===============================================+
-
+```
 ---
 
 ## ✨ Features
