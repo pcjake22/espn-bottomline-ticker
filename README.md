@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 NHL BottomLine Taskbar Ticker
 =======
 # NHL BottomLine Taskbar Ticker
@@ -13,7 +12,6 @@ NHL BottomLine Taskbar Ticker
 
 A lightweight broadcast-style bottom ticker that docks directly over your physical taskbar on any monitor. Features live ESPN scores, period clocks, active power-play indicators, and an unbroken 60 FPS around-the-league crawl with official team logos.
 
-<<<<<<< HEAD
 FEATURES
 
 • Full Monitor TV Ribbon: Frameless, always-on-top layout modeled after sports broadcasts.
