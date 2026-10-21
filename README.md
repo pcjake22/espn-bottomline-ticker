@@ -1,6 +1,6 @@
 # ESPN BottomLine Ticker & Multiview
 
-![ESPN BottomLine Ticker Banner](assets/banner_v1.3.png)
+![ESPN BottomLine Ticker Banner](assets/banner-v1.2.png)
 
 [![Latest Release](https://img.shields.io/github/v/release/pcjake22/nhl-bottomline-ticker?style=for-the-badge&color=CC0000)](https://github.com/pcjake22/nhl-bottomline-ticker/releases/latest)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/pcjake22/nhl-bottomline-ticker)
@@ -59,6 +59,8 @@ The multiview grid opens 4 stream windows and docks them directly into a 2x2 gri
 +===============================================+
 | [ESPN BOTTOMLINE]  COL 3 @ NJ 4  ★  BOS 2-1 DAL |  <- 48px Ticker
 +===============================================+
+
+---
 
 ## ✨ Features
 
