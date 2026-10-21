@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+NHL BottomLine Taskbar Ticker
+=======
+>>>>>>> 7b6693a (Fix badge styling and eliminate rogue top border lines)
 # NHL BottomLine Taskbar Ticker
 
 ![NHL Bottomline Ticker Banner](assets/banner.png)
@@ -6,6 +12,15 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue?style=for-the-badge)](https://github.com/pcjake22/nhl-bottomline-ticker)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![GUI](https://img.shields.io/badge/GUI-PyQt6-41CD52?style=for-the-badge&logo=qt&logoColor=white)](https://pypi.org/project/PyQt6/)
+<<<<<<< HEAD
+=======
+>>>>>>> 15273d2 (Update README with banner preview and latest ticker fixes)
+
+A lightweight broadcast-style bottom ticker that docks directly over your physical taskbar on any monitor. Features live ESPN scores, period clocks, active power-play indicators, and an unbroken 60 FPS around-the-league crawl with official team logos.
+
+<<<<<<< HEAD
+FEATURES
+>>>>>>> 7b6693a (Fix badge styling and eliminate rogue top border lines)
 
 A lightweight broadcast-style bottom ticker that docks directly over your physical taskbar on any monitor. Features live ESPN scores, period clocks, active power-play indicators, and an unbroken 60 FPS around-the-league crawl with official team logos.
 
@@ -29,6 +44,31 @@ If you just want to run the ticker on Windows without installing code dependenci
 - **Dynamic Multi-Monitor Switching:** Instantly jump between connected screens via the right-click menu.
 - **Live Situational Alerts:** Flags power plays and last-play goal events automatically.
 
+<<<<<<< HEAD
+=======
+Tip for Windows users: Rename ticker.py to ticker.pyw (or launch via pythonw ticker.py) to run it silently in the background without a terminal window.
+=======
+---
+
+## ⚡ Quick Start (No Python Required)
+
+If you just want to run the ticker on Windows without installing code dependencies:
+
+1. Download **[`ticker.exe`](https://github.com/pcjake22/nhl-bottomline-ticker/releases/latest/download/ticker.exe)** from the Releases page.
+2. Double-click `ticker.exe` to launch.
+3. **Right-click** anywhere on the bar to switch monitors, force a score refresh, or close the app.
+
+---
+
+## 🛠️ Features
+
+- **Full-Width Broadcast Ribbon:** Replaces empty taskbar dead-space with a TV-styled ESPN scorebug.
+- **Continuous 60 FPS Crawl:** Custom hardware-accelerated ticker loop that scrolls scores, shots, and play events with zero text overlapping.
+- **Asynchronous Background Polling:** Fetches data and team logos on background threads so animations remain completely smooth.
+- **Dynamic Multi-Monitor Switching:** Instantly jump between connected screens via the right-click menu.
+- **Live Situational Alerts:** Flags power plays and last-play goal events automatically.
+
+>>>>>>> 7b6693a (Fix badge styling and eliminate rogue top border lines)
 ---
 
 ## 💻 Manual Installation (From Source)
@@ -42,4 +82,9 @@ cd nhl-bottomline-ticker
 pip install -r requirements.txt
 
 # 3. Launch the ticker
+<<<<<<< HEAD
 python ticker.py
+=======
+python ticker.py
+>>>>>>> 15273d2 (Update README with banner preview and latest ticker fixes)
+>>>>>>> 7b6693a (Fix badge styling and eliminate rogue top border lines)
